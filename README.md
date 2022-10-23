@@ -15,12 +15,12 @@ In this paper, we assume two following statements.
 
 Due to the similarity of content information between adjacent nodes, graph diffusions are proper for diffusing content information (not type information).  
 Hence, we try to decouple type- and content- information of nodes.  
-Our paper present a novel type-adaptive (de)normalization to analyze heterogeneous graphs by decoupling type- and content- information of nodes.  
-![type_adaptive](https://user-images.githubusercontent.com/37531907/197387808-7bc26a92-6379-4450-8a7b-a39a0cdea4de.PNG)
+Our paper present a novel type-adaptive (de)normalization to analyze heterogeneous graphs by decoupling type- and content- information of nodes. 
+![type_adaptive](https://user-images.githubusercontent.com/37531907/197388411-d38899a9-9571-4c73-bb49-bf8c909ae32e.PNG)
 
 With the assumption, our HetGDCN diffuses content information with graph diffusions.  
 Then, we recombine type- and content- information.  
-![overview](https://user-images.githubusercontent.com/37531907/197387805-0bb48489-284c-4fc8-af92-c014dc6f62c0.PNG)
+![overview](https://user-images.githubusercontent.com/37531907/197388403-df37803a-4f06-4c93-867a-7f1d4ec0a761.PNG)
 
 # Dependencies
 Recent versions of the following packages for Python 3 are required:
