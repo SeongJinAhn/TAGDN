@@ -5,8 +5,11 @@ Thank you for your interest in our works!
 
 # Motivation
 (1) Diffusion-based GCNs have made success on analyzing graph data thanks to their robustness of structural noise.  
-    However, these diffusion-based GCNs assume that graphs are either homophilic or heterophilic.  
-(2) We find out that heterogeneous graphs are neither homophilic nor heterophilic.   
+    A relatively few studies have examined diffusion-based GCNs on heterogeneous graphs.  
+    
+      
+(2) In diffusion-based GCNs, graphs are assumed to be homophilic or heterophilic.  
+    However, we find out that heterogeneous graphs are neither homophilic nor heterophilic.   
 
 # Methods
 In this paper, we assume two following statements.  
