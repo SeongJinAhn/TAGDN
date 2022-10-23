@@ -8,10 +8,16 @@ Thank you for your interest in our works!
     However, these diffusion-based GCNs assume that graphs are either homophilic or heterophilic.  
 (2) We find out that heterogeneous graphs are neither homophilic nor heterophilic.   
 
+# Methods
+In this paper, we assume two following statements.  
+(1) Each node in heteogeneous graphs has its own type- and content- information.  
+(2) Connected nodes in heterogeneous graphs have similar content information (not type information).  
+
+Due to the similarity of content information between adjacent nodes, graph diffusions are proper for diffusing content information (not type information).  
+Hence, we try to decouple type- and content- information of nodes.  
 Our paper present a novel type-adaptive (de)normalization to analyze heterogeneous graphs by decoupling type- and content- information of nodes.  
 ![type_adaptive](https://user-images.githubusercontent.com/37531907/197387808-7bc26a92-6379-4450-8a7b-a39a0cdea4de.PNG)
 
-In this paper, we assume that connected nodes have similar content information.  
 With the assumption, our HetGDCN diffuses content information with graph diffusions.  
 Then, we recombine type- and content- information.  
 ![overview](https://user-images.githubusercontent.com/37531907/197387805-0bb48489-284c-4fc8-af92-c014dc6f62c0.PNG)
