@@ -4,7 +4,7 @@ An implement of our paper "Diffusion-based Graph Convolution Networks for Hetero
 Thank you for your interest in our works!  
 
 # Motivation
-(1) Diffusion-based GCNs have made success on analyzing graph data thanks to their robustness of structural noise.  
+(1) GNNs leveraging graph diffusion have made success on analyzing graph data thanks to their robustness of structural noise.  
     A relatively few studies have examined diffusion-based GCNs on heterogeneous graphs.  
     
       
