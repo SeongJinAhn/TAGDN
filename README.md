@@ -21,6 +21,7 @@ Hence, we try to decouple type- and content- information of nodes.
 Our paper present a novel type-adaptive (de)normalization to analyze heterogeneous graphs by decoupling type- and content- information of nodes. 
 ![AdaTN](https://user-images.githubusercontent.com/37531907/216320923-676fe8b1-35ee-405e-81bf-c156a1e51691.png)
 
+
 With the assumption, our HetGDCN diffuses content information with graph diffusions.  
 Then, we recombine type- and content- information.  
 ![overview](https://user-images.githubusercontent.com/37531907/216320862-ce215572-00ec-4be4-8d6d-5d24e53ac7ac.png)
