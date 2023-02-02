@@ -1,5 +1,5 @@
-# HetGDCN
-An implement of our paper "Diffusion-based Graph Convolution Networks for Heterogeneous Graphs using Type-Adaptive Normalization" (Submission for TheWebConf 2023).
+# HetGDN
+An implement of our paper "Diffusion-based Graph Convolution Networks for Heterogeneous Graphs using Adaptive-Type Normalization" (Submission for KDD 2023).
 
 Thank you for your interest in our works!  
 
