@@ -13,6 +13,7 @@ Existing heterogeneous graph neural networks commonly have difficulty capturing 
 Existing diffusion-based GNNs defined in homogeneous graphs (e.g., APPNP, GraphHeat, GDC) encourage node representations of connected nodes similar.  
 - However, nodes in heterogeneous graphs also contain type information.
 - It is undesirable that connected nodes have similar type information.
+#### Our model diffuse information throughout networks, while preventing type-information to be fused.  
 
 # Methods  
 Our HetGDN introduces two techniques.  
