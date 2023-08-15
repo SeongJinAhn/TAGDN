@@ -1,23 +1,25 @@
 # HetGDN
-An implement of our paper "Diffusion-based Graph Convolution Networks for Heterogeneous Graphs using Adaptive-Type Normalization" (Submission for KDD 2023).
+An implementation of our paper "Heterogeneous Graph Diffusion Networks" (Submission for AAAI-2024).
 
-Thank you for your interest in our works!  
+Thank you for your interest in our work!  
 
-# Motivation
-(1) GNNs leveraging graph diffusion have made success on analyzing graph data thanks to their robustness of structural noise.  
-    A relatively few studies have examined diffusion-based GCNs on heterogeneous graphs.  
-    
-(2) Nodes in heterogeneous graphs have different features corresponding to their types.
-    To leverage diffusion in heterogeneous graphs, we need to handle the heterogeneity among node features.
+# Motivation  
+Existing heterogeneous graph neural networks commonly have difficulty capturing high-order relationships.  
+- Metapath-based GNNs : Only focus on selected high-order relationships  
+- Metapath-free GNNs : Hard to stack deeply because of over-parameterization and over-squashing (because of a large number of relation-aware parameters)
+## We aim to capture comprehensive high-order relationships with graph diffusion without metapaths and relation-aware parameters.  
 
-# Methods
-To handle the feature discrepancies among nodes, we propose Adaptive Type Normalization (AdaTN) that project features of a node into the feature space of nodes with different types. 
-This process enables features of nodes to be compatible regardless of type differences.
-Following figure shows a process to project a latent vector of a movie v into the latent space of u.
-![AdaTN](https://user-images.githubusercontent.com/37531907/216320923-676fe8b1-35ee-405e-81bf-c156a1e51691.png)
+# Challenges    
+Existing diffusion-based GNNs defined in homogeneous graphs (e.g., APPNP, GraphHeat, GDC) encourage node representations of connected nodes similar.  
+- However, nodes in heterogeneous graphs also contain type information.
+- It is undesirable that connected nodes have similar type information.
 
-With the proposed AdaTN, features of a node and those of other nodes can be located into the same latent space.
-This indicates that we are able to leverage diffusions to smooth higher-order neighbors in heterogeneous graphs.
+# Methods  
+Our HetGDN introduces two techniques.
+(1) Type-Adaptive Normalization disentangles type-information and type-independent information contained in hidden representations.  
+(2) Type-Independent Matching Regularization encourages connected nodes to share type-independent information (not type-information)  
+
+With the aid of those techniques, HetGDN successfully captures high-order relationships in heterogeneous graphs without over-parameterization and over-squashing
 ![overview](https://user-images.githubusercontent.com/37531907/216320862-ce215572-00ec-4be4-8d6d-5d24e53ac7ac.png)
 
 
@@ -31,4 +33,4 @@ Recent versions of the following packages for Python 3 are required:
 * torch_scatter 2.0.9  
 
 # Easy Run
-> python main.py --dataset=DBLP --mode=rw
+> python main.py --dataset=DBLP --mode=rw --hops=15
