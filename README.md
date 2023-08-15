@@ -20,7 +20,7 @@ Our HetGDN introduces two techniques.
 - (2) Type-Independent Matching Regularization encourages connected nodes to share type-independent information (not type-information)    
 
 With the aid of those techniques, HetGDN successfully captures high-order relationships in heterogeneous graphs without over-parameterization and over-squashing  
-![overview](https://user-images.githubusercontent.com/37531907/216320862-ce215572-00ec-4be4-8d6d-5d24e53ac7ac.png)
+![overview](![overview](https://github.com/SeongJinAhn/HetGDN/assets/37531907/189708a2-b88f-412c-a65c-9f80d5771912)
 
 
 # Dependencies
