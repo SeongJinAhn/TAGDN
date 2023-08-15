@@ -7,7 +7,7 @@ Thank you for your interest in our work!
 Existing heterogeneous graph neural networks commonly have difficulty capturing high-order relationships.  
 - Metapath-based GNNs : Only focus on selected high-order relationships  
 - Metapath-free GNNs : Hard to stack deeply because of over-parameterization and over-squashing (because of a large number of relation-aware parameters)
-## We aim to capture comprehensive high-order relationships with graph diffusion without metapaths and relation-aware parameters.  
+#### We aim to capture comprehensive high-order relationships with graph diffusion without metapaths and relation-aware parameters.  
 
 # Challenges    
 Existing diffusion-based GNNs defined in homogeneous graphs (e.g., APPNP, GraphHeat, GDC) encourage node representations of connected nodes similar.  
