@@ -10,6 +10,7 @@ from sklearn.svm import LinearSVC
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, normalized_mutual_info_score, adjusted_rand_score
 from sklearn.preprocessing import OneHotEncoder
+from torch_geometric.utils import to_undirected
 
 def accuracy(pred, target):
     r"""Computes the accuracy of correct predictions.
@@ -186,7 +187,7 @@ def kmeans_test(X, y, n_clusters, repeat=10):
         ari_list.append(ari_score)
     return np.mean(nmi_list), np.std(nmi_list), np.mean(ari_list), np.std(ari_list)
 
-def svm_test(X, y, test_sizes=(0.2, 0.4, 0.6, 0.8), repeat=10):
+def svm_test(X, y, test_sizes=(0.2, 0.4, 0.6, 0.8, 0.9), repeat=10):
     random_states = [182318 + i for i in range(repeat)]
     result_macro_f1_list = []
     result_micro_f1_list = []
@@ -214,10 +215,10 @@ def evaluate_results_nc(embeddings, labels, num_classes, mode='test'):
     if mode=='test':
         print('Macro-F1: ' + ', '.join(['{:.6f}~{:.6f} ({:.1f})'.format(macro_f1_mean, macro_f1_std, train_size) for
                                     (macro_f1_mean, macro_f1_std), train_size in
-                                    zip(svm_macro_f1_list, [0.8, 0.6, 0.4, 0.2])]))
+                                    zip(svm_macro_f1_list, [0.8, 0.6, 0.4, 0.2, 0.1])]))
         print('Micro-F1: ' + ', '.join(['{:.6f}~{:.6f} ({:.1f})'.format(micro_f1_mean, micro_f1_std, train_size) for
                                     (micro_f1_mean, micro_f1_std), train_size in
-                                    zip(svm_micro_f1_list, [0.8, 0.6, 0.4, 0.2])]))
+                                    zip(svm_micro_f1_list, [0.8, 0.6, 0.4, 0.2, 0.1])]))
         print('K-means test')
     nmi_mean, nmi_std, ari_mean, ari_std = kmeans_test(embeddings, labels, num_classes)
 
@@ -240,19 +241,6 @@ def load_DBLP_data(prefix='data/preprocessed/DBLP_processed'):
     train_val_test_idx = np.load(prefix + '/train_val_test_idx.npz')
 
     return [features_0, features_1, features_2, features_3],\
-           adjM, \
-           labels,\
-           train_val_test_idx
-
-
-def load_IMDB_data(prefix='data/preprocessed/IMDB_processed'):
-    features_0 = sp.load_npz(prefix + '/features_0.npz')
-    features_1 = sp.load_npz(prefix + '/features_1.npz')
-    features_2 = sp.load_npz(prefix + '/features_2.npz')
-    adjM = sp.load_npz(prefix + '/adjM.npz')
-    labels = np.load(prefix + '/labels.npy')
-    train_val_test_idx = np.load(prefix + '/train_val_test_idx.npz')
-    return [features_0, features_1, features_2],\
            adjM, \
            labels,\
            train_val_test_idx
@@ -295,10 +283,21 @@ def load_ACM_data(prefix='data/preprocessed/ACM_processed'):
            labels, \
            train_val_test_idx
 
+def load_IMDB_data(prefix='data/preprocessed/IMDB_processed'):
+    features_0 = sp.load_npz(prefix + '/features_0.npz')
+    features_1 = sp.load_npz(prefix + '/features_1.npz')
+    features_2 = sp.load_npz(prefix + '/features_2.npz')
+    adjM = sp.load_npz(prefix + '/adjM.npz')
+    labels = np.load(prefix + '/labels.npy')
+    train_val_test_idx = np.load(prefix + '/train_val_test_idx.npz')
+    return [features_0, features_1, features_2],\
+           adjM, \
+           labels,\
+           train_val_test_idx
 
-def load_freebase(ratio, type_num):
+def load_FREEBASE_data(ratio, type_num):
     # The order of node types: 0 m 1 d 2 a 3 w
-    path = "./data/freebase/"
+    path = "data/preprocessed/FREEBASE_processed/"
     label = np.load(path + "labels.npy").astype('int32')
     label = encode_onehot(label)
     nei_d = np.load(path + "nei_d.npy", allow_pickle=True)
@@ -360,9 +359,6 @@ def load_freebase(ratio, type_num):
            np.argmax(label,1), \
            {'train_idx':train[0], 'val_idx':val[0], 'test_idx':test[0]}
 
-
-
-
 def make_edge(edges, edge_type, N, dataset, dev):
     num_type = edge_type.max()+1
     adj = []
@@ -383,6 +379,8 @@ def make_edge(edges, edge_type, N, dataset, dev):
         paths = [[0],[1],[2],[3]]
     if dataset == 'FREEBASE':
         paths = [[0],[1],[2],[3],[4],[5]]
+    if dataset == 'AMINER':
+        paths = [[0],[1],[2],[3]]
 
     for j,path in enumerate(paths):
         tmp = adj[path[-1]].to_dense()
@@ -404,64 +402,139 @@ def make_edge(edges, edge_type, N, dataset, dev):
     return edge.t(), edge_type
 
 
-def make_negative_edge(src, dst, N, neg_sample):
+def make_negative_edge(edge, neg_edge, N, neg_sample):
+    src, dst = edge
+    not_src, not_dst = neg_edge
     length = len(src)
     num_nodes = N
 
-    ########################
-    N,M=0,0
-    node2index_s = {}
-    index2node_s = {}
-    node2index_d = {}
-    index2node_d = {}
-
-    index2node_s_list = []
-    index2node_d_list = []
-
-    for i in src.tolist():
-        if i not in index2node_s:
-            node2index_s[len(node2index_s)] = i
-            index2node_s[i] = len(index2node_s)
-            N+=1
-        index2node_s_list.append(index2node_s[i])
-
-    index2node_s_tensor = torch.zeros(torch.max(src)+1).cuda(0)
-    for i in src.tolist():
-        index2node_s_tensor[index2node_s[i]] = i
-
-    for i in dst.tolist():
-        if i not in index2node_d:
-            node2index_d[len(node2index_d)] = i
-            index2node_d[i] = len(index2node_d)
-            M+=1
-        index2node_d_list.append(index2node_d[i])
-
-    index2node_d_tensor = torch.zeros(torch.max(dst)+1).cuda(0)
-    for i in dst.tolist():
-        index2node_d_tensor[index2node_d[i]] = i
+    adj = torch.ones(N,N)    
+    for i,_ in enumerate(not_src):
+        s = not_src[i]
+        d = not_dst[i]
+        for i in s:
+            adj[i][d] = 0
+    adj[src,dst] = 1
+    return (1-adj).nonzero().t()
 
 
-    src_ = []
-    dst_ = []
-    src = index2node_s_list
-    dst = index2node_d_list
-    ########################
+def preprocess_attributes(N, dataset, features_list, dev):
+    total_features = 0
+    for i in range(len(features_list)):
+        total_features += features_list[i].shape[1]
+        if dataset in ['ACM', 'IMDB']:
+            continue
 
-    data = np.ones(length)
-    src, dst = np.array(src), np.array(dst)
+    node_features = torch.FloatTensor(N, total_features).to(dev)
+    cnt1,cnt2 = 0,0
+    for i in range(len(features_list)):
+        edge_index = features_list[i].nonzero()
+        if dataset == 'FREEBASE':
+            edge_index = edge_index.t()
+        node_features[cnt1+edge_index[0], cnt2+edge_index[1]] = torch.FloatTensor(features_list[i][edge_index[0], edge_index[1]]).to(dev)
+        cnt1 += features_list[i].shape[0]
+        if dataset in ['ACM', 'IMDB']:
+            continue
+        cnt2 += features_list[i].shape[1]  
+    return node_features.to(dev)
 
-    A = sp.csc_matrix((data, (src,dst)), shape=(N,M)).todense()
-    tmp = (1-A).nonzero()
-    tmp = torch.cat((torch.LongTensor(tmp[0]).unsqueeze(0),torch.LongTensor(tmp[1]).unsqueeze(0)),0)#.cuda()
+def preprocess_edges(N, adjM, dataset, features_list, dev):
+    if dataset == 'DBLP':
+        num_relation = 6
+    if dataset == 'IMDB':
+        num_relation = 4
+    if dataset == 'ACM':
+        num_relation = 4
+    if dataset == 'FREEBASE':
+        num_relation = 6
 
-    np.random.seed(np.random.randint(1,100))
-    if len(tmp[0]) == 0:
-        return torch.LongTensor([]), torch.LongTensor([]), torch.LongTensor([])
-    index = np.random.choice(len(tmp[0]), neg_sample * len(src))
+    index = adjM.nonzero()
+    src = torch.LongTensor([]).to(dev)
+    dst = torch.LongTensor([]).to(dev)
+    length = []
+    node_types = []
+    type_of_edges = torch.LongTensor([]).to(dev)
+    
+    cnt1 = 0
+    cnt = 0
+    edges = []
+    not_src, not_dst = [], []
 
-    index = torch.LongTensor(index)
-    node2index_s = index2node_s_tensor[tmp[0][index]].long()
-    node2index_d = index2node_d_tensor[tmp[1][index]].long()
+    for i in range(len(features_list)):
+        cnt2 = 0
+        for j in range(len(features_list)):
+            if adjM[cnt1:cnt1+features_list[i].shape[0], cnt2:cnt2+features_list[j].shape[0]].sum() != 0:           # 0 : 4057(A) -> 14328(P)
+                tmp = adjM[cnt1:cnt1+features_list[i].shape[0], cnt2:cnt2+features_list[j].shape[0]].nonzero()      # 1 : 14328(P) -> 4057(A)  
+                tmp = torch.LongTensor(tmp).to(dev)                                                              # 2 : 14328(P) -> 7723(T)
+                src = torch.cat((src, tmp[0]+cnt1))                                                                 # 3 : 14328(P) -> 20(V)
+                dst = torch.cat((dst, tmp[1]+cnt2))                                                                 # 4 : T -> P
+                type_of_edges = torch.cat((type_of_edges, torch.ones_like(tmp[0]).to(dev)*cnt))                      # 5 : V -> P
+                length.append(tmp.size()[1])
 
-    del A, tmp, src_, dst_, index2node_s_list, index2node_d_list, index
-    return node2index_s, node2index_d
+                node_types.append(set((tmp[0]+cnt1).tolist()))                                                             # 0 : M -> D
+                node_types.append(set((tmp[1]+cnt2).tolist()))                                                             # 1 : M -> A
+                
+                cnt+=1                                                                                  
+                
+                not_src.append([i for i in range(cnt1, cnt1+features_list[i].shape[0])])
+                not_dst.append([i for i in range(cnt2, cnt2+features_list[j].shape[0])])
+
+            cnt2 += features_list[j].shape[0]
+        cnt1 += features_list[i].shape[0]
+
+
+    for i,edge in enumerate(edges):
+        tmp2 = torch.LongTensor(edges[i].nonzero()).to(dev)
+        src2 = torch.cat((src2, tmp2[0]))
+        dst2 = torch.cat((dst2, tmp2[1]))
+        type_of_edges2 = torch.cat((type_of_edges2, torch.ones_like(tmp2[0])*i))
+        length.append(tmp2.size()[1])
+
+        node_types.append(set(tmp2[0].tolist()))
+        node_types.append(set(tmp2[1].tolist()))
+
+    a = set()
+    type_nodes = torch.Tensor([]).to(dev)
+    for i in range(len(node_types)):
+        if list(node_types[i])[0] not in a:
+            tmp = torch.zeros(N).to(dev)
+            tmp[list(node_types[i])] = 1
+            type_nodes = torch.cat((type_nodes, tmp.unsqueeze(0)))
+        a = a | node_types[i]
+
+    src, dst = src.to(dev), dst.to(dev)
+    cnt = 0
+
+    edge_type = torch.zeros(num_relation, sum(length)).to(dev)
+    for i in range(num_relation):
+        edge_type[i][cnt:cnt+length[i]] = 1
+        cnt += length[i]
+    
+    edges_split = {}
+    edges_split['pos'] = torch.cat((src.unsqueeze(0), dst.unsqueeze(0)))
+    edges_split['pos_type'] = type_of_edges
+    del src, dst, type_of_edges
+    edge, _ = make_edge(edges_split['pos'], edges_split['pos_type'], N, dataset, dev)
+    return edge, [not_src, not_dst], type_nodes
+
+def divide_train_val_test_edge(edge, neg_edge):
+    edge = edge[:, edge[0] < edge[1]]
+    index = torch.randperm(edge.size()[1])
+    train_edge = edge[:, index[:edge.size()[1]//10*6]]
+    val_edge = edge[:, index[edge.size()[1]//10*1:edge.size()[1]//10*(6+1)]]
+    test_edge = edge[:, index[:edge.size()[1]//10*(6+1):]]
+    s,d = train_edge
+    s,d = torch.cat(([s,d])), torch.cat(([d,s]))
+    train_edge = torch.cat((s.unsqueeze(0), d.unsqueeze(0)))
+    val_edge = to_undirected(val_edge)
+    test_edge = to_undirected(test_edge)
+
+    neg_edge = neg_edge[:, neg_edge[0] < neg_edge[1]]
+    index = torch.randperm(neg_edge.size()[1])
+    train_neg_edge = neg_edge[:, index[:neg_edge.size()[1]//10]]
+    val_neg_edge = neg_edge[:, index[neg_edge.size()[1]//10:neg_edge.size()[1]//10 + val_edge.size()[1]//2]]
+    test_neg_edge = neg_edge[:, index[neg_edge.size()[1]//10 + val_edge.size()[1]//2 : neg_edge.size()[1]//10 + val_edge.size()[1]//2 + test_edge.size()[1]//2]]
+    train_neg_edge = to_undirected(train_neg_edge)
+    val_neg_edge = to_undirected(val_neg_edge)
+    test_neg_edge = to_undirected(test_neg_edge)
+    return (train_edge, val_edge, test_edge), (train_neg_edge, val_neg_edge, test_neg_edge)
