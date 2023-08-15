@@ -57,7 +57,7 @@ class Diffusion(MessagePassing):
 
         if normalize_type == 'row':
             return edge_index,  edge_weight * deg_inv_sqrt[col]
-        if normalize_type == 'sym':
+        if normalize_type == 'sym': 
             return edge_index,  deg_inv_sqrt[row] * edge_weight * deg_inv_sqrt[col]
 
 
@@ -67,17 +67,23 @@ class Diffusion(MessagePassing):
         edge_index = remove_self_loops(edge_index)[0]
         
         if self.laplacian == False:
-            edge_index = add_self_loops(edge_index, num_nodes=x.size()[0])[0]
+            edge_index = add_self_loops(edge_index, fill_value=0, num_nodes=x.size()[0])[0]
         
         edge_index, norm = self.norm(edge_index, x.size(0), edge_weight, normalize_type='row', dtype=x.dtype)
         if self.laplacian == True:
             edge_index, norm = add_self_loops(edge_index, norm, fill_value=-1,num_nodes=x.size()[0])
 
         orig = x
-        for i in range(self.K, 0, -1):
+        coeff = 1
+        answer = x
+        for i in range(1, self.K+1):
             x = self.propagate(edge_index, x=x, norm=norm)
-            x = self.alpha * x / i + orig
-        return x
+            x2 = self.propagate(edge_index, x=x, norm=norm)
+            x = x - 1/2 * x2
+            coeff /= i
+            coeff *= self.alpha
+            answer = answer + x * coeff
+        return answer
 
     def message(self, x_j, norm):
         return norm.view(-1, 1) * x_j
@@ -116,7 +122,7 @@ class APPNP(MessagePassing):
     def forward(self, x, edge_index, edge_weight=None, laplacian=False):
         """"""
         edge_index = to_undirected(edge_index, num_nodes=x.size()[0])
-        edge_index = remove_self_loops(edge_index)[0]       
+        edge_index = remove_self_loops(edge_index)[0]      
         edge_index = add_self_loops(edge_index, num_nodes=x.size()[0])[0]
         
         edge_index, norm = self.norm(edge_index, x.size(0), edge_weight, normalize_type='row', dtype=x.dtype)
@@ -125,6 +131,45 @@ class APPNP(MessagePassing):
         for i in range(1, self.K+1):
             x = self.propagate(edge_index, x=x, norm=norm)
             x = x * (1-self.alpha) + orig * self.alpha
+        return x
+
+    def message(self, x_j, norm):
+        return norm.view(-1, 1) * x_j
+
+    def __repr__(self):
+        return '{}(K={}, alpha={})'.format(self.__class__.__name__, self.K,
+                                           self.alpha)
+
+class Prop(MessagePassing):
+    def __init__(self, K, alpha, bias=True, **kwargs):
+        super(Prop, self).__init__(aggr='add', **kwargs)
+        self.K = K
+        self.alpha = alpha
+    
+    @staticmethod
+    def norm(edge_index, num_nodes, edge_weight=None, normalize_type='row',
+             dtype=None):
+        if edge_weight is None:
+            edge_weight = torch.ones((edge_index.size(1), ), dtype=dtype,
+                                     device=edge_index.device)
+
+        row, col = edge_index
+        deg = scatter_add(edge_weight, row, dim=0, dim_size=num_nodes)
+        if normalize_type == 'row':
+            deg_inv_sqrt = deg.pow(-1)
+        if normalize_type == 'sym':
+            deg_inv_sqrt = deg.pow(-0.5)
+        deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
+
+        if normalize_type == 'row':
+            return edge_index,  edge_weight * deg_inv_sqrt[col]
+        if normalize_type == 'sym':
+            return edge_index,  deg_inv_sqrt[row] * edge_weight * deg_inv_sqrt[col]
+
+
+    def forward(self, x, edge_index, edge_weight=None, laplacian=False):
+        edge_index, norm = self.norm(edge_index, x.size(0), edge_weight, normalize_type='row', dtype=x.dtype)
+        x = self.propagate(edge_index, x=x, norm=norm)
         return x
 
     def message(self, x_j, norm):
