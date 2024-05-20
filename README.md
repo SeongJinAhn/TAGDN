@@ -1,4 +1,4 @@
-# HetGDN
+# TAGDN
 An implementation of our paper "TAGDN: A Type-Aligning Graph Diffusion Network to Mitigate Over-Squashing and Over-Smoothing in Heterogeneous Graph Analysis" (Submission for CIKM-2024).
 
 Thank you for your interest in our work!  
@@ -15,10 +15,10 @@ However, existing graph diffusion networks (e.g., APPNP, GDC, G2CN) do not accou
 ![overview](https://github.com/SeongJinAhn/HetGDN/assets/37531907/189708a2-b88f-412c-a65c-9f80d5771912)
 
 # Datasets
-The used datasets are available.
-DBLP : https://www.dropbox.com/s/yh4grpeks87ugr2/DBLP_processed.zip?e=1&dl=0
-IMDB : https://www.dropbox.com/s/g0btk9ctr1es39x/IMDB_processed.zip?e=1&dl=0
-ACM, Freebase : [https://github.com/meettyj/HGMAE/tree/master/data]
+The used datasets are available.  
+DBLP : https://www.dropbox.com/s/yh4grpeks87ugr2/DBLP_processed.zip?e=1&dl=0  
+IMDB : https://www.dropbox.com/s/g0btk9ctr1es39x/IMDB_processed.zip?e=1&dl=0  
+ACM, Freebase : [https://github.com/meettyj/HGMAE/tree/master/data]  
 
 # Dependencies
 Recent versions of the following packages for Python 3 are required:
