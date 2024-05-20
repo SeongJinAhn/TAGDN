@@ -4,7 +4,7 @@ An implementation of our paper "TAGDN: A Type-Aligning Graph Diffusion Network t
 Thank you for your interest in our work!  
 
 # Motivation  
-Existing metapath-free GNNs face difficulty capturing long-range dependencies between distant nodes because of over-squashing and over-smoothing.
+Existing metapath-free GNNs (e.g., ie-HGCN, FastGTN, SR-HGN, MHGCN+) face difficulty capturing long-range dependencies between distant nodes because of over-squashing and over-smoothing.
 
 Graph diffusion is a promising direction to mitigate over-squashing and over-smoothing.
 
