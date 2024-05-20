@@ -12,7 +12,7 @@ However, existing graph diffusion networks (e.g., APPNP, GDC, G2CN) do not accou
 
 #### We design a simple yet effective Type-Aligning Graph Diffusion Network to capture long-range dependencies in heterogeneous graphs effectively.
 
-![overview]([https://github.com/SeongJinAhn/HetGDN/assets/37531907/189708a2-b88f-412c-a65c-9f80d5771912](https://github.com/SeongJinAhn/TAGDN/blob/main/Figures/overview.png?raw=true))
+![overview](https://github.com/SeongJinAhn/TAGDN/blob/main/Figures/overview.png?raw=true)
 
 # Datasets
 The used datasets are available.  
