@@ -1,31 +1,23 @@
 # HetGDN
-An implementation of our paper "Heterogeneous Graph Diffusion Networks" (Submission for AAAI-2024).
+An implementation of our paper "TAGDN: A Type-Aligning Graph Diffusion Network to Mitigate Over-Squashing and Over-Smoothing in Heterogeneous Graph Analysis" (Submission for CIKM-2024).
 
 Thank you for your interest in our work!  
 
 # Motivation  
-Existing heterogeneous graph neural networks commonly have difficulty capturing high-order relationships.  
-- Metapath-based GNNs : Only focus on selected high-order relationships  
-- Metapath-free GNNs : Hard to stack deeply because of over-parameterization and over-squashing (because of a large number of relation-aware parameters)
-#### We aim to capture comprehensive high-order relationships with graph diffusion without metapaths and relation-aware parameters.  
+Existing metapath-free GNNs face difficulty capturing long-range dependencies between distant nodes because of over-squashing and over-smoothing.
 
-# Challenges    
-Existing diffusion-based GNNs defined in homogeneous graphs (e.g., APPNP, GraphHeat, GDC) encourage node representations of connected nodes similar.  
-- However, nodes in heterogeneous graphs also contain type information.
-- It is undesirable that connected nodes have similar type information.
-#### Our model diffuse information throughout networks, while preventing type-information to be fused.  
+Graph diffusion is a promising direction to mitigate over-squashing and over-smoothing.
+However, existing graph diffusion networks (e.g., APPNP, GDC, G2CN) do not account for the heterogeneity of attributes and relationships.
 
-# Methods  
-Our HetGDN introduces two techniques.  
-- (1) Type-Adaptive Normalization disentangles type-information and type-independent information contained in hidden representations.   
-- (2) Type-Independent Matching Regularization encourages connected nodes to share type-independent information (not type-information)    
+#### We design a simply yet effective Type-Aligning Graph Diffusion Network to effectively capture long-range dependencies in heterogeneous graphs.
 
-With the aid of those techniques, HetGDN successfully captures high-order relationships in heterogeneous graphs without over-parameterization and over-squashing  
 ![overview](https://github.com/SeongJinAhn/HetGDN/assets/37531907/189708a2-b88f-412c-a65c-9f80d5771912)
 
 # Datasets
 The used datasets are available.
-Please download datasets in [https://github.com/meettyj/HGMAE/tree/master/data]
+DBLP : https://www.dropbox.com/s/yh4grpeks87ugr2/DBLP_processed.zip?e=1&dl=0
+IMDB : https://www.dropbox.com/s/g0btk9ctr1es39x/IMDB_processed.zip?e=1&dl=0
+ACM, Freebase : [https://github.com/meettyj/HGMAE/tree/master/data]
 
 # Dependencies
 Recent versions of the following packages for Python 3 are required:
