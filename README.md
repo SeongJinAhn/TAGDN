@@ -7,9 +7,10 @@ Thank you for your interest in our work!
 Existing metapath-free GNNs face difficulty capturing long-range dependencies between distant nodes because of over-squashing and over-smoothing.
 
 Graph diffusion is a promising direction to mitigate over-squashing and over-smoothing.
+
 However, existing graph diffusion networks (e.g., APPNP, GDC, G2CN) do not account for the heterogeneity of attributes and relationships.
 
-#### We design a simply yet effective Type-Aligning Graph Diffusion Network to effectively capture long-range dependencies in heterogeneous graphs.
+#### We design a simple yet effective Type-Aligning Graph Diffusion Network to capture long-range dependencies in heterogeneous graphs effectively.
 
 ![overview](https://github.com/SeongJinAhn/HetGDN/assets/37531907/189708a2-b88f-412c-a65c-9f80d5771912)
 
