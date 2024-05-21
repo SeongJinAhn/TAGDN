@@ -1,3 +1,4 @@
+import time
 from ctypes.wintypes import SC_HANDLE
 from operator import neg
 from numpy.lib.type_check import real
@@ -6,13 +7,14 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 import scipy.sparse as sp 
-from src.layers import APPNP, Diffusion
+from src.layers import PPR, HeatKernel, Gaussian
 from sklearn.metrics import roc_auc_score, average_precision_score
 
-class HetGDC(nn.Module):
-    def __init__(self, num_class, num_layers, w_in, w_out, alpha, type_nodes, mode, dataset, temperature, dev):
-        super(HetGDC, self).__init__()
+class TAGDN(nn.Module):
+    def __init__(self, num_class, num_layers, w_in, w_hid, w_out, alpha, type_nodes, mode, dataset, temperature, dev):
+        super(TAGDN, self).__init__()
         self.w_in = w_in
+        self.w_hid = w_hid
         self.w_out = w_out
         self.num_layers = num_layers
         self.dataset = dataset
@@ -21,24 +23,27 @@ class HetGDC(nn.Module):
 
         self.type_nodes = type_nodes.long()
         self.loss = nn.CrossEntropyLoss()
+        self.renormalized = False # Renormalization trick : A -> (A+I)
+        self.symmetric = 'row'
 
-        self.prop = APPNP(K=1, alpha=0)
-        self.appnp = APPNP(K=num_layers, alpha=alpha)
-        self.heat_diffusion = Diffusion(K=num_layers, alpha=alpha, laplacian=True)
-        self.node_features = nn.Parameter(torch.FloatTensor(self.w_in, self.w_out).uniform_(-1.0, 1.0).to(dev))
-        self.LP_loss = nn.BCEWithLogitsLoss(reduction='mean') 
-
-        if mode == '1-hop':
-            self.diffusion = self.prop
-        if mode == 'rw':
-            self.diffusion = self.appnp
-        if mode == 'heat':
-            self.diffusion = self.heat_diffusion
-
-        if dataset in ['DBLP']:
+        if dataset in ['ACM']:
             self.act = 'tanh'
+            self.symmetric = 'sym'
         else:
             self.act = 'l2'
+
+        self.ppr_diffusion = PPR(K=num_layers, alpha=alpha, renormalized=self.renormalized, symmetric=self.symmetric)
+        self.heat_diffusion = HeatKernel(K=num_layers, alpha=alpha, symmetric=self.symmetric, laplacian=True)
+        self.gaussian_diffusion = Gaussian(K=num_layers, alpha=alpha, laplacian=True)
+        self.node_features = nn.Parameter(torch.FloatTensor(self.w_in, self.w_out).uniform_(-1.0, 1.0).to(dev))
+
+        if mode == 'ppr':
+            self.diffusion = self.ppr_diffusion
+        if mode == 'heat':
+            self.diffusion = self.heat_diffusion
+        if mode == 'gaussian':
+            self.diffusion = self.gaussian_diffusion
+
 
         self.num_node_types = self.type_nodes.size()[0]
         for i in range(self.num_node_types):
@@ -47,16 +52,18 @@ class HetGDC(nn.Module):
             else:
                 self.node_type += i * self.type_nodes[i]
 
-        self.linear = nn.Linear(self.w_in, w_out)
-        self.linear1 = nn.Linear(w_out, num_class)
+        self.type_specific_encoder = nn.Linear(w_in, w_hid)
+        self.linear = nn.Linear(w_hid, w_out)
+        self.classifier = nn.Linear(w_out, num_class)
+        nn.init.xavier_normal_(self.type_specific_encoder.weight, gain=1.414)
         nn.init.xavier_normal_(self.linear.weight, gain=1.414)
-        nn.init.xavier_normal_(self.linear1.weight, gain=1.414)
+        nn.init.xavier_normal_(self.classifier.weight, gain=1.414)
 
     def type_adaptive_normalization(self, H):
         for i in range(self.type_nodes.size()[0]):
-            tmp_std, tmp_mean = torch.std_mean(H[self.type_nodes[i].nonzero()],0)
-            if self.dataset in ['DBLP']:  # scaling factor
-                tmp_std = tmp_std * torch.sqrt(self.type_nodes[i].sum())
+            tmp_std, tmp_mean = torch.std_mean(H[self.type_nodes[i].nonzero()],0, unbiased=False)
+            if self.dataset in ['DBLP', 'IMDB']:
+                tmp_std = tmp_std * torch.sqrt(self.type_nodes[i].sum()) + 1e-9
             if i == 0:
                 mean_node_type = tmp_mean
                 std_node_type = tmp_std
@@ -64,47 +71,26 @@ class HetGDC(nn.Module):
                 mean_node_type = torch.cat((mean_node_type, tmp_mean))
                 std_node_type = torch.cat((std_node_type, tmp_std))
 
-        tilde_H = (H - mean_node_type[self.node_type]) / std_node_type[self.node_type]
-        return (mean_node_type, std_node_type), tilde_H
+        return mean_node_type, std_node_type
 
     def type_aware_encoding(self, X):
-        H = self.linear(X)
+        H = self.type_specific_encoder(X)
         H = self.activation(H, self.act)
         return H
 
-    def type_infomation_restoration(self, tilde_Z, mean_node_type, std_node_type):
-        Z = tilde_Z * std_node_type[self.node_type] + mean_node_type[self.node_type]
-        return Z
-
-    def forward(self, X, edge_index, neg_edge):
-        # encoding
+    def forward(self, X, edge_index, training=True):
+        # Type-Aware Encoder
+        start_time = time.time()
         H = self.type_aware_encoding(X)
-        type_information, tilde_H = self.type_adaptive_normalization(H)
-        mean_node_type, std_node_type = type_information
 
-        # Generalized Graph Diffusion
+        mean_node_type, std_node_type = self.type_adaptive_normalization(H)
+        tilde_H = (H - mean_node_type[self.node_type]) / std_node_type[self.node_type]
         tilde_Z = self.diffusion(tilde_H, edge_index)
+        Z = tilde_Z * std_node_type[self.node_type] + mean_node_type[self.node_type]
 
-        # add type information to diffused style representations
-        Z = self.type_infomation_restoration(tilde_Z, mean_node_type, std_node_type)
-        return Z, self.TIMReg(tilde_H, edge_index, neg_edge).cuda()
-
-    #DBLP : temperature=1 K=10 alpha=0.1
-    #ACM :  temperature=0.5 K=15 alpha=0.1 
-    #IMDB : temperature=1  K=10 
-    #FREEBASE : temperature=3
-
-    def TIMReg(self, z, edge_index, neg_edge):
-        z = F.normalize(z, p=2, dim=1)
-        pred_pos = torch.sum(z[edge_index[0]] * z[edge_index[1]], dim=1)
-        pred_neg = torch.sum(z[neg_edge[0]] * z[neg_edge[1]], dim=1)
-
-        pos = torch.exp(pred_pos/self.temperature).sum()
-        neg = torch.exp(pred_neg/self.temperature).sum()
-        del pred_pos, pred_neg
-        loss = -torch.log(pos / (pos+neg))
-        del pos, neg
-        return loss
+        Z = self.linear(Z)
+        Z = F.normalize(Z, p=2, dim=1)
+        return Z
 
     def activation(self, z, type):
         if type == 'sigmoid':
@@ -119,30 +105,8 @@ class HetGDC(nn.Module):
             return F.normalize(z, p=2, dim=1)
     
     def node_classification(self, z, train_node, train_target):
-        z = self.linear1(z)
+        z = self.classifier(z)
         y = z[train_node]
         loss = self.loss(y, train_target)
+        del z
         return loss
-    
-    def lp_loss(self, z, pos_edge, neg_edge):
-        pred, target = self.lp_predict(z, pos_edge, neg_edge)
-        loss = self.LP_loss(pred, target)
-        del pred, target
-        return loss, 0
-
-    def lp_predict(self, z, pos_edge, neg_edge):
-        pred_pos = torch.sum(z[pos_edge[0]] * z[pos_edge[1]], dim=1)
-        pred_neg = torch.sum(z[neg_edge[0]] * z[neg_edge[1]], dim=1)
-
-        pred = torch.cat((pred_pos, pred_neg))
-        target = [1 for x in range(len(pos_edge[0]))] + [0 for x in range(len(neg_edge[0]))]
-        target = torch.Tensor(target).cuda()
-        del pred_pos, pred_neg
-        return pred, target
-
-    def lp_test(self, z, pos_edge, neg_edge):
-        pred, y = self.lp_predict(z, pos_edge, neg_edge)
-        pred = torch.sigmoid(pred)
-
-        y, pred = y.detach().cpu().numpy(), pred.detach().cpu().numpy()
-        return roc_auc_score(y, pred), average_precision_score(y, pred)
