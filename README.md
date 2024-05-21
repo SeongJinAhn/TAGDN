@@ -30,4 +30,4 @@ Recent versions of the following packages for Python 3 are required:
 * torch_scatter 2.0.9  
 
 # Easy Run
-> python main.py --dataset=DBLP --mode=rw --num_layers=15
+> python main.py --dataset=DBLP --diffusion=ppr --num_layers=15 --alpha=0.1
