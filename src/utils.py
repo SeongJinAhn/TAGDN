@@ -238,7 +238,9 @@ def load_DBLP_data(prefix='data/preprocessed/DBLP_processed'):
 
     adjM = sp.load_npz(prefix + '/adjM.npz')
     labels = np.load(prefix + '/labels.npy')
-    train_val_test_idx = np.load(prefix + '/train_val_test_idx.npz')
+    prefix = 'D:/data/DBLP/'
+    train_val_test_idx = np.load(prefix + 'train_val_test_idx.npz')
+#    train_val_test_idx = np.load(prefix + '/train_val_test_idx.npz')
 
     return [features_0, features_1, features_2, features_3],\
            adjM, \
@@ -265,6 +267,10 @@ def load_ACM_data(prefix='data/preprocessed/ACM_processed'):
     features_0 = sp.load_npz(prefix + '/features_0.npz').toarray()
     features_1 = sp.load_npz(prefix + '/features_1.npz').toarray()
     features_2 = sp.load_npz(prefix + '/features_2.npz').toarray()
+#    features_1 = nn.Parameter(torch.Tensor(features_1.shape[0], 256), requires_grad=False)
+#    nn.init.xavier_uniform_(features_1)
+#    features_2 = nn.Parameter(torch.Tensor(features_2.shape[0], 256), requires_grad=False)
+#    nn.init.xavier_uniform_(features_2)
 
     N = features_0.shape[0] + features_1.shape[0] + features_2.shape[0]
     adj = np.zeros([N, N])
@@ -371,16 +377,11 @@ def make_edge(edges, edge_type, N, dataset, dev):
         tmp = torch.sparse.FloatTensor(index,v, torch.Size([N,N]))
         adj.append(tmp)
 
-    if dataset == 'DBLP':
+    if dataset in ['DBLP', 'FREEBASE']:
         paths = [[0],[1],[2],[3],[4],[5]]
-    if dataset == 'IMDB':
+    if dataset in ['IMDB', 'ACM', 'AMINER']:
         paths = [[0],[1],[2],[3]]
-    if dataset == 'ACM':
-        paths = [[0],[1],[2],[3]]
-    if dataset == 'FREEBASE':
-        paths = [[0],[1],[2],[3],[4],[5]]
-    if dataset == 'AMINER':
-        paths = [[0],[1],[2],[3]]
+
 
     for j,path in enumerate(paths):
         tmp = adj[path[-1]].to_dense()
@@ -402,7 +403,7 @@ def make_edge(edges, edge_type, N, dataset, dev):
     return edge.t(), edge_type
 
 
-def make_negative_edge(edge, neg_edge, N, neg_sample):
+def make_negative_edge(edge, neg_edge, N):
     src, dst = edge
     not_src, not_dst = neg_edge
     length = len(src)
@@ -433,7 +434,7 @@ def preprocess_attributes(N, dataset, features_list, dev):
             edge_index = edge_index.t()
         node_features[cnt1+edge_index[0], cnt2+edge_index[1]] = torch.FloatTensor(features_list[i][edge_index[0], edge_index[1]]).to(dev)
         cnt1 += features_list[i].shape[0]
-        if dataset in ['ACM', 'IMDB']:
+        if dataset in ['ACM','IMDB']:
             continue
         cnt2 += features_list[i].shape[1]  
     return node_features.to(dev)
@@ -520,9 +521,9 @@ def preprocess_edges(N, adjM, dataset, features_list, dev):
 def divide_train_val_test_edge(edge, neg_edge):
     edge = edge[:, edge[0] < edge[1]]
     index = torch.randperm(edge.size()[1])
-    train_edge = edge[:, index[:edge.size()[1]//10*6]]
-    val_edge = edge[:, index[edge.size()[1]//10*1:edge.size()[1]//10*(6+1)]]
-    test_edge = edge[:, index[:edge.size()[1]//10*(6+1):]]
+    train_edge = edge[:, index[:edge.size()[1]//10*4]]
+    val_edge = edge[:, index[edge.size()[1]//10*4:edge.size()[1]//10*(4+1)]]
+    test_edge = edge[:, index[:edge.size()[1]//10*(4+1):]]
     s,d = train_edge
     s,d = torch.cat(([s,d])), torch.cat(([d,s]))
     train_edge = torch.cat((s.unsqueeze(0), d.unsqueeze(0)))
@@ -531,10 +532,78 @@ def divide_train_val_test_edge(edge, neg_edge):
 
     neg_edge = neg_edge[:, neg_edge[0] < neg_edge[1]]
     index = torch.randperm(neg_edge.size()[1])
-    train_neg_edge = neg_edge[:, index[:neg_edge.size()[1]//10]]
-    val_neg_edge = neg_edge[:, index[neg_edge.size()[1]//10:neg_edge.size()[1]//10 + val_edge.size()[1]//2]]
-    test_neg_edge = neg_edge[:, index[neg_edge.size()[1]//10 + val_edge.size()[1]//2 : neg_edge.size()[1]//10 + val_edge.size()[1]//2 + test_edge.size()[1]//2]]
+    val_neg_edge = neg_edge[:, index[:val_edge.size()[1]//2]]
+    test_neg_edge = neg_edge[:, index[val_edge.size()[1]//2:val_edge.size()[1]//2 + test_edge.size()[1]//2]]
+    train_neg_edge = neg_edge[:, index[val_edge.size()[1]//2 + test_edge.size()[1]//2:]]
     train_neg_edge = to_undirected(train_neg_edge)
     val_neg_edge = to_undirected(val_neg_edge)
     test_neg_edge = to_undirected(test_neg_edge)
     return (train_edge, val_edge, test_edge), (train_neg_edge, val_neg_edge, test_neg_edge)
+
+
+import torch.nn as nn
+class RBF(nn.Module):
+    
+    def __init__(self, n_kernels=3, mul_factor=2.0, bandwidth=None):
+        super().__init__()
+        self.bandwidth_multipliers = mul_factor ** (torch.arange(n_kernels) - n_kernels // 2)
+        self.bandwidth = bandwidth
+
+    def get_bandwidth(self, L2_distances):
+        if self.bandwidth is None:
+            n_samples = L2_distances.shape[0]
+            return L2_distances.data.sum() / (n_samples ** 2 - n_samples)
+
+        return self.bandwidth
+
+    def forward(self, X):
+        L2_distances = (torch.cdist(X, X) ** 2).cuda()
+        del X
+        tmp1 = -L2_distances[None, ...].cuda()
+        tmp2 = (self.get_bandwidth(L2_distances).cuda() * self.bandwidth_multipliers.cuda()).cuda()
+        del L2_distances
+        loss = torch.exp(tmp1.cpu() /  tmp2[:, None, None].cpu()).sum(dim=0).cuda()
+        del tmp1, tmp2
+        return loss
+
+
+class MMDLoss(nn.Module):
+
+    def __init__(self, kernel=RBF()):
+        super().__init__()
+        self.kernel = kernel
+
+    def forward(self, X, Y):
+        K = self.kernel(torch.vstack([X, Y]))
+
+        X_size = X.shape[0]
+        XX = K[:X_size, :X_size].mean()
+        XY = K[:X_size, X_size:].mean()
+        YY = K[X_size:, X_size:].mean()
+        return XX - 2 * XY + YY
+
+def calculate_mmd(tilde_h, node_type):
+    MMD = 0
+    for i in range(node_type.max()+1):
+        for j in range(i+1, node_type.max()+1):
+            idx1 = (node_type==i).nonzero().squeeze()
+            idx2 = (node_type==j).nonzero().squeeze()
+            X = tilde_h[idx1]
+            Y = tilde_h[idx2]
+            K = RBF()(torch.vstack([X, Y]))
+
+            X_size = X.shape[0]
+            XX = K[:X_size, :X_size].mean()
+            XY = K[:X_size, X_size:].mean()
+            YY = K[X_size:, X_size:].mean()
+            MMD += XX - 2 * XY + YY
+            del X, Y, K, XX, XY, YY
+    print('MMD : ', MMD)
+    return MMD
+
+from sklearn.metrics.cluster import normalized_mutual_info_score, adjusted_rand_score
+def evaluate_cluster(embeds, y, n_labels, kmeans_random_state):
+    Y_pred = KMeans(n_labels, random_state=kmeans_random_state).fit(embeds).predict(embeds)
+    nmi = normalized_mutual_info_score(y, Y_pred)
+    ari = adjusted_rand_score(y, Y_pred)
+    return nmi, ari
