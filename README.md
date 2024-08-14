@@ -1,5 +1,5 @@
 # TAGDN
-An implementation of our paper "TAGDN: A Type-Aligning Graph Diffusion Network to Mitigate Over-Squashing and Over-Smoothing in Heterogeneous Graph Analysis" (Submission for AAAI-2024).
+An implementation of our paper "TAGDN: A Type-Aligning Graph Diffusion Network to Mitigate Over-Smoothing and Over-Squashing in Heterogeneous Graph Analysis" (Submission for AAAI-2024).
 
 Thank you for your interest in our work!  
 
