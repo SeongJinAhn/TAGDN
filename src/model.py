@@ -35,7 +35,6 @@ class TAGDN(nn.Module):
         self.ppr_diffusion = PPR(K=num_layers, alpha=alpha, renormalized=self.renormalized, symmetric=self.symmetric)
         self.heat_diffusion = HeatKernel(K=num_layers, alpha=alpha, symmetric=self.symmetric, laplacian=True)
         self.gaussian_diffusion = Gaussian(K=num_layers, alpha=alpha, laplacian=True)
-        self.node_features = nn.Parameter(torch.FloatTensor(self.w_in, self.w_out).uniform_(-1.0, 1.0).to(dev))
 
         if mode == 'ppr':
             self.diffusion = self.ppr_diffusion
