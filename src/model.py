@@ -62,8 +62,7 @@ class TAGDN(nn.Module):
     def type_specific_moments(self, H):
         for i in range(self.type_nodes.size()[0]):
             tmp_std, tmp_mean = torch.std_mean(H[self.type_nodes[i].nonzero()],0, unbiased=False)
-            if self.dataset in ['DBLP', 'IMDB']:
-                tmp_std = tmp_std * torch.sqrt(self.type_nodes[i].sum()) + 1e-9
+            tmp_std = tmp_std * torch.sqrt(self.type_nodes[i].sum()) + 1e-9
             if i == 0:
                 mean_node_type = tmp_mean
                 std_node_type = tmp_std
