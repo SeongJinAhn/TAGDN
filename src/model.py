@@ -58,7 +58,7 @@ class TAGDN(nn.Module):
         nn.init.xavier_normal_(self.linear.weight, gain=1.414)
         nn.init.xavier_normal_(self.classifier.weight, gain=1.414)
 
-    def type_specific_moments(self, H):
+    def type_specific_statistics(self, H):
         for i in range(self.type_nodes.size()[0]):
             tmp_std, tmp_mean = torch.std_mean(H[self.type_nodes[i].nonzero()],0, unbiased=False)
             tmp_std = tmp_std * torch.sqrt(self.type_nodes[i].sum()) + 1e-9
@@ -81,7 +81,7 @@ class TAGDN(nn.Module):
         start_time = time.time()
         H = self.type_aware_encoding(X)
 
-        mean_node_type, std_node_type = self.type_specific_moments(H)
+        mean_node_type, std_node_type = self.type_specific_statistics(H)
         tilde_H = (H - mean_node_type[self.node_type]) / std_node_type[self.node_type]
         tilde_Z = self.diffusion(tilde_H, edge_index)
         Z = tilde_Z * std_node_type[self.node_type] + mean_node_type[self.node_type]
