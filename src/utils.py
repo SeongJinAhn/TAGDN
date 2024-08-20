@@ -265,12 +265,10 @@ def load_ACM_data(prefix='data/preprocessed/ACM_processed'):
     in_file.close()
 
     features_0 = sp.load_npz(prefix + '/features_0.npz').toarray()
-    features_1 = sp.load_npz(prefix + '/features_1.npz').toarray()
-    features_2 = sp.load_npz(prefix + '/features_2.npz').toarray()
-#    features_1 = nn.Parameter(torch.Tensor(features_1.shape[0], 256), requires_grad=False)
-#    nn.init.xavier_uniform_(features_1)
-#    features_2 = nn.Parameter(torch.Tensor(features_2.shape[0], 256), requires_grad=False)
-#    nn.init.xavier_uniform_(features_2)
+    features_1 = nn.Parameter(torch.Tensor(7167, 256), requires_grad=False)
+    nn.init.xavier_uniform_(features_1)
+    features_2 = nn.Parameter(torch.Tensor(60, 256), requires_grad=False)
+    nn.init.xavier_uniform_(features_2)
 
     N = features_0.shape[0] + features_1.shape[0] + features_2.shape[0]
     adj = np.zeros([N, N])
