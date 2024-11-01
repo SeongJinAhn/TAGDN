@@ -1,5 +1,5 @@
 # TAGDN
-An implementation of our paper "TAGDN: A Type-Aligning Graph Diffusion Network to Mitigate Over-Smoothing and Over-Squashing in Heterogeneous Graph Analysis" (Submission for AAAI-2024).
+An implementation of our paper "TAGDN: Type-Aligning Graph Diffusion Network for Heterogeneous Graph Analysis".
 
 # Motivation  
 Existing metapath-free GNNs (e.g., ie-HGCN, FastGTN, SR-HGN, MHGCN+) face difficulty capturing long-range dependencies between distant nodes because of over-squashing and over-smoothing.
