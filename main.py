@@ -14,8 +14,6 @@ if __name__ == '__main__':
                         help='Dataset')
     parser.add_argument('--epoch', type=int, default=50,
                         help='Training Epochs')
-    parser.add_argument('--hidden_dim', type=int, default=1024,
-                        help='Hidden dimension d_h')
     parser.add_argument('--node_dim', type=int, default=256,
                         help='Node dimension d')
     parser.add_argument('--lr', type=float, default=0.005,
@@ -83,7 +81,6 @@ if __name__ == '__main__':
     model = TAGDN(num_class=num_classes,
                         num_layers=num_layers,
                         w_in = node_features.shape[1],
-                        w_hid = args.hidden_dim,
                         w_out = node_dim,
                         alpha=coeff,
                         type_nodes=type_nodes,
