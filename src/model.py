@@ -11,11 +11,10 @@ from src.layers import PPR, HeatKernel, Gaussian
 from sklearn.metrics import roc_auc_score, average_precision_score
 
 class TAGDN(nn.Module):
-    def __init__(self, num_class, num_layers, w_in, w_hid, w_out, alpha, type_nodes, mode, dataset, temperature, dev):
+    def __init__(self, num_class, num_layers, w_in, w_hid, alpha, type_nodes, mode, dataset, temperature, dev):
         super(TAGDN, self).__init__()
         self.w_in = w_in
         self.w_hid = w_hid
-        self.w_out = w_out
         self.num_layers = num_layers
         self.dataset = dataset
         self.dev = dev
@@ -52,7 +51,6 @@ class TAGDN(nn.Module):
                 self.node_type += i * self.type_nodes[i]
 
         self.type_specific_encoder = nn.Linear(w_in, w_hid)
-        self.linear = nn.Linear(w_hid, w_out)
         self.classifier = nn.Linear(w_out, num_class)
         nn.init.xavier_normal_(self.type_specific_encoder.weight, gain=1.414)
         nn.init.xavier_normal_(self.linear.weight, gain=1.414)
@@ -85,8 +83,7 @@ class TAGDN(nn.Module):
         tilde_H = (H - mean_node_type[self.node_type]) / std_node_type[self.node_type]
         tilde_Z = self.diffusion(tilde_H, edge_index)
         Z = tilde_Z * std_node_type[self.node_type] + mean_node_type[self.node_type]
-        Z = self.linear(Z)
-        Z = F.normalize(Z, p=2, dim=1)
+        Z = self.activation(Z, self.act)
         return Z
 
     def activation(self, z, type):
