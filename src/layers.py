@@ -178,7 +178,6 @@ class PPR(MessagePassing):
         """"""
         edge_index = to_undirected(edge_index, num_nodes=x.size()[0])
         edge_index = remove_self_loops(edge_index)[0] 
-        edge_index = add_self_loops(edge_index, num_nodes=x.size()[0])[0]
         
         edge_index, norm = self.norm(edge_index, x.size(0), edge_weight, normalize_type=self.symmetric, dtype=x.dtype)
         orig = x
