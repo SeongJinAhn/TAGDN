@@ -123,11 +123,10 @@ class TAGDN(nn.Module):
         tilde_Z = self.diffusion(tilde_H, edge_index)
         Z = tilde_Z * std_node_type[self.node_type] + mean_node_type[self.node_type]
  
-        Z = self.diffusion(H, edge_index)
-        Z = F.normalize(Z, p=2, dim=1)
+        Z = F.normalize(Z, p=2, dim=1
         print(time.time() - start_time)
         return Z, loss
-    
+
     def wasserstein_loss(self, embeddings):
         embeddings = embeddings.cpu().detach().numpy()
         embeddings = embeddings.flatten()
