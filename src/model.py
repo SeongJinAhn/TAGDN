@@ -114,8 +114,6 @@ class TAGDN(nn.Module):
         # Type-Aware Encoder
         H = self.type_aware_encoding(X)
         
-        import time
-        start_time = time.time()
         mean_node_type, std_node_type = self.type_specific_statistics(H)
         tilde_H = (H - mean_node_type[self.node_type]) / std_node_type[self.node_type]
         loss = self.wasserstein_loss(tilde_H)
@@ -123,8 +121,7 @@ class TAGDN(nn.Module):
         tilde_Z = self.diffusion(tilde_H, edge_index)
         Z = tilde_Z * std_node_type[self.node_type] + mean_node_type[self.node_type]
  
-        Z = F.normalize(Z, p=2, dim=1
-        print(time.time() - start_time)
+        Z = F.normalize(Z, p=2, dim=1)
         return Z, loss
 
     def wasserstein_loss(self, embeddings):
