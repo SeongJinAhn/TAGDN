@@ -11,32 +11,8 @@ import scipy.sparse as sp
 from src.layers import PPR, HeatKernel, Gaussian
 from scipy.stats import wasserstein_distance
 from sklearn.metrics import roc_auc_score, average_precision_score
-
-
 import torch.nn as nn
-class RBF(nn.Module):
-    
-    def __init__(self, n_kernels=3, mul_factor=2.0, bandwidth=None):
-        super().__init__()
-        self.bandwidth_multipliers = mul_factor ** (torch.arange(n_kernels) - n_kernels // 2)
-        self.bandwidth = bandwidth
 
-    def get_bandwidth(self, L2_distances):
-        if self.bandwidth is None:
-            n_samples = L2_distances.shape[0]
-            return L2_distances.data.sum() / (n_samples ** 2 - n_samples)
-
-        return self.bandwidth
-
-    def forward(self, X):
-        L2_distances = (torch.cdist(X, X) ** 2).cuda()
-        del X
-        tmp1 = -L2_distances[None, ...].cuda()
-        tmp2 = (self.get_bandwidth(L2_distances).cuda() * self.bandwidth_multipliers.cuda()).cuda()
-        del L2_distances
-        loss = torch.exp(tmp1.cpu() /  tmp2[:, None, None].cpu()).sum(dim=0).cuda()
-        del tmp1, tmp2
-        return loss
     
 class TAGDN(nn.Module):
     def __init__(self, num_class, num_layers, w_in, w_hid, w_out, alpha, type_nodes, mode, dataset, temperature, dev):
