@@ -1,5 +1,5 @@
 # TAGDN
-An implementation of our paper "TAGDN: Type-Aligning Graph Diffusion Network for Heterogeneous Graph Analysis".
+An implementation of our paper "TAGDN: Type-Aligning Graph Diffusion Network for Heterogeneous Graph Analysis", which is accepted by Neural Computing and Applications.
 
 # Motivation  
 Existing metapath-free GNNs (e.g., ie-HGCN, FastGTN, SR-HGN, MHGCN+) face difficulty capturing long-range dependencies between distant nodes because of over-squashing and over-smoothing.
